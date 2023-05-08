@@ -16,7 +16,7 @@
 from pxr import Usd, Sdf, Gf
 from .utils import scale_object_if_needed, apply_material_to_prim, create_prim, set_transformTRS_attrs
 
-def place_deepsearch_results(gpt_results, query_result, root_prim_path):
+def place_deepsearch_results(nucleus_path, gpt_results, query_result, root_prim_path):
     index = 0
     for item in query_result:
         item_name = item[0]
@@ -33,7 +33,7 @@ def place_deepsearch_results(gpt_results, query_result, root_prim_path):
         
         # TODO: The query results should returnt he full path of the prim
         references.AddReference(
-            assetPath="omniverse://ov-simready" + item_path)
+            assetPath=nucleus_path + item_path)
 
         # Add reference for future search refinement 
         config = next_prim.CreateAttribute("DeepSearch:Query", Sdf.ValueTypeNames.String)

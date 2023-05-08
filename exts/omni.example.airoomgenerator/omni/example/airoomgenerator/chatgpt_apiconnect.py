@@ -97,6 +97,7 @@ async def call_Generate(prim_info, prompt, use_chatgpt, use_deepsearch, response
         query_result = await query_items(queries=queries, url=nucleus_path, paths=filter_paths)
         if query_result is not None:
             place_deepsearch_results(
+                nucleus_path=nucleus_path,
                 gpt_results=objects,
                 query_result=query_result,
                 root_prim_path=root_prim_path)
