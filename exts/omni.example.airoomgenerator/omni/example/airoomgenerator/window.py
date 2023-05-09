@@ -48,7 +48,7 @@ class GenAIWindow(ui.Window):
             with ui.ScrollingFrame():
                 with ui.VStack(style=gen_ai_style):
                     with ui.HStack(height=0):
-                        ui.Label("Content Generatation with ChatGPT", style={"font_size": 18})
+                        ui.Label("Content Generatation with Azure OpenAI Services", style={"font_size": 18})
                         ui.Button(name="properties", tooltip="Configure API Key and Nucleus Path", width=30, height=30, clicked_fn=lambda: self._open_settings())
                         
                     with ui.CollapsableFrame("Getting Started Instructions", height=0, collapsed=True):
@@ -76,6 +76,8 @@ class GenAIWindow(ui.Window):
         settings.set_string("/persistent/exts/omni.example.airoomgenerator/APIKey", values["APIKey"])
         settings.set_string("/persistent/exts/omni.example.airoomgenerator/deepsearch_nucleus_path", values["deepsearch_nucleus_path"])
         settings.set_string("/persistent/exts/omni.example.airoomgenerator/path_filter", values["path_filter"])
+        settings.set_string("/persistent/exts/omni.example.airoomgenerator/endpoint_value", values["endpoint_value"])
+        settings.set_string("/persistent/exts/omni.example.airoomgenerator/deployment_model_name", values["deployment_model_name"])
 
         dialog.hide()
 
@@ -84,16 +86,24 @@ class GenAIWindow(ui.Window):
         apikey_value = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/APIKey")
         nucleus_path = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/deepsearch_nucleus_path")
         path_filter = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/path_filter")
+        endpoint_value = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/endpoint_value")
+        deployment_model_name = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/deployment_model_name")
 
         if apikey_value == "":
             apikey_value = "Enter API Key Here"
+        if endpoint_value == "":
+            endpoint_value = "Enter Azure OpenAI Endpoint Here"
         if nucleus_path == "":
             nucleus_path = "(ENTERPRISE ONLY) Enter Nucleus Path Here"
         if path_filter == "":
             path_filter = ""
+        if deployment_model_name == "":
+            deployment_model_name = "Add Azure OpenAI deployed model name"
 
         field_defs = [
             FormDialog.FieldDef("APIKey", "API Key: ", ui.StringField, apikey_value),
+            FormDialog.FieldDef("endpoint_value", "Azure OpenAI Endpoint: ", ui.StringField, endpoint_value),
+            FormDialog.FieldDef("deployment_model_name", "Deployment Model Name: ", ui.StringField, deployment_model_name),
             FormDialog.FieldDef("deepsearch_nucleus_path", "Nucleus Path: ", ui.StringField, nucleus_path),
             FormDialog.FieldDef("path_filter", "Path Filter: ", ui.StringField, path_filter)
         ]        

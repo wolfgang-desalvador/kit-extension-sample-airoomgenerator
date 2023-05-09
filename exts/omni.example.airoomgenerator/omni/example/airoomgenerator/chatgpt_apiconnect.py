@@ -15,23 +15,33 @@
 
 import json
 import carb
-import aiohttp
 import asyncio
 from .prompts import system_input, user_input, assistant_input
 from .deep_search import query_items
 from .item_generator import place_greyboxes, place_deepsearch_results
 
+import omni.kit.pipapi
+omni.kit.pipapi.install(
+    package="openai",
+    module="openai"
+)
+import openai
+
+
 async def chatGPT_call(prompt: str):
     # Load your API key from an environment variable or secret management service
     settings = carb.settings.get_settings()
     
-    apikey = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/APIKey")
+    openai.api_type = "azure"
+    openai.api_version = "2023-03-15-preview" 
+    openai.api_base = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/endpoint_value")
+    openai.api_key = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/APIKey")
     my_prompt = prompt.replace("\n", " ")
     
     # Send a request API
     try:
         parameters = {
-            "model": "gpt-3.5-turbo",
+            "engine": settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/deployment_model_name"),
             "messages": [
                     {"role": "system", "content": system_input},
                     {"role": "user", "content": user_input},
@@ -39,12 +49,8 @@ async def chatGPT_call(prompt: str):
                     {"role": "user", "content": my_prompt}
                 ]
         }
-        chatgpt_url = "https://api.openai.com/v1/chat/completions"
-        headers = {"Authorization": "Bearer %s" % apikey}
-        # Create a completion using the chatGPT model
-        async with aiohttp.ClientSession() as session:
-            async with session.post(chatgpt_url, headers=headers, json=parameters) as r:
-                response = await r.json()
+        
+        response = await openai.ChatCompletion.acreate(**parameters)
         text = response["choices"][0]["message"]['content']
     except Exception as e:
         carb.log_error("An error as occurred")
