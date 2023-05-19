@@ -48,11 +48,10 @@ class DeepSearchPickerWindow(ui.Window):
             self._selected_prim = stage.GetPrimAtPath(prim_path)
             query = self._selected_prim.GetAttribute("DeepSearch:Query").Get()
 
-            prop_paths = ["/Projects/simready_content/common_assets/props/",
-                          "/NVIDIA/Assets/Isaac/2022.2.1/Isaac/Robots/",
-                          "/NVIDIA/Assets/Isaac/2022.1/NVIDIA/Assets/ArchVis/Residential/Furniture/"]
+            prop_paths = []
 
-            self._query_results = await deep_search.query_all(query, "omniverse://ov-simready/", paths=prop_paths)
+            nucleus_path = carb.settings.get_settings().get_as_string("/persistent/exts/omni.example.airoomgenerator/deepsearch_nucleus_path")
+            self._query_results = await deep_search.query_all(query, nucleus_path, paths=prop_paths)
 
             self._prim_path_model.set_value(prim_path)
 
@@ -92,10 +91,11 @@ class DeepSearchPickerWindow(ui.Window):
                     ui.Spacer()
     
     def replace_reference(self):
+        nucleus_path = carb.settings.get_settings().get_as_string("/persistent/exts/omni.example.airoomgenerator/deepsearch_nucleus_path")
         references: Usd.references = self._selected_prim.GetReferences()
         references.ClearReferences()
         references.AddReference(
-                assetPath="omniverse://ov-simready" + self._query_results.paths[self._index].uri)
+                assetPath= nucleus_path + self._query_results.paths[self._index].uri)
 
         carb.log_info("Got it?")
 

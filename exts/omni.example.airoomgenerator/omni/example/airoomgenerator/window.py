@@ -36,6 +36,7 @@ class GenAIWindow(ui.Window):
         self._area_name_model = ui.SimpleStringModel()
         self._use_deepsearch = ui.SimpleBoolModel()
         self._use_chatgpt = ui.SimpleBoolModel()
+        self._use_az_openai = ui.SimpleBoolModel()
         self._areas = []
         self.response_log = None
         self.current_index = -1
@@ -48,7 +49,7 @@ class GenAIWindow(ui.Window):
             with ui.ScrollingFrame():
                 with ui.VStack(style=gen_ai_style):
                     with ui.HStack(height=0):
-                        ui.Label("Content Generatation with Azure OpenAI Services", style={"font_size": 18})
+                        ui.Label("Content Generatation with OpenAI", style={"font_size": 18})
                         ui.Button(name="properties", tooltip="Configure API Key and Nucleus Path", width=30, height=30, clicked_fn=lambda: self._open_settings())
                         
                     with ui.CollapsableFrame("Getting Started Instructions", height=0, collapsed=True):
@@ -76,8 +77,9 @@ class GenAIWindow(ui.Window):
         settings.set_string("/persistent/exts/omni.example.airoomgenerator/APIKey", values["APIKey"])
         settings.set_string("/persistent/exts/omni.example.airoomgenerator/deepsearch_nucleus_path", values["deepsearch_nucleus_path"])
         settings.set_string("/persistent/exts/omni.example.airoomgenerator/path_filter", values["path_filter"])
-        settings.set_string("/persistent/exts/omni.example.airoomgenerator/endpoint_value", values["endpoint_value"])
-        settings.set_string("/persistent/exts/omni.example.airoomgenerator/deployment_model_name", values["deployment_model_name"])
+        if self._use_az_openai.as_bool:
+            settings.set_string("/persistent/exts/omni.example.airoomgenerator/endpoint_value", values["endpoint_value"])
+            settings.set_string("/persistent/exts/omni.example.airoomgenerator/deployment_model_name", values["deployment_model_name"])
 
         dialog.hide()
 
@@ -100,13 +102,20 @@ class GenAIWindow(ui.Window):
         if deployment_model_name == "":
             deployment_model_name = "Add Azure OpenAI deployed model name"
 
-        field_defs = [
-            FormDialog.FieldDef("APIKey", "API Key: ", ui.StringField, apikey_value),
-            FormDialog.FieldDef("endpoint_value", "Azure OpenAI Endpoint: ", ui.StringField, endpoint_value),
-            FormDialog.FieldDef("deployment_model_name", "Deployment Model Name: ", ui.StringField, deployment_model_name),
-            FormDialog.FieldDef("deepsearch_nucleus_path", "Nucleus Path: ", ui.StringField, nucleus_path),
-            FormDialog.FieldDef("path_filter", "Path Filter: ", ui.StringField, path_filter)
-        ]        
+        if self._use_az_openai.as_bool:
+            field_defs = [
+                FormDialog.FieldDef("APIKey", "API Key: ", ui.StringField, apikey_value),
+                FormDialog.FieldDef("endpoint_value", "Azure OpenAI Endpoint: ", ui.StringField, endpoint_value),
+                FormDialog.FieldDef("deployment_model_name", "Deployment Model Name: ", ui.StringField, deployment_model_name),
+                FormDialog.FieldDef("deepsearch_nucleus_path", "Nucleus Path: ", ui.StringField, nucleus_path),
+                FormDialog.FieldDef("path_filter", "Path Filter: ", ui.StringField, path_filter)
+            ]
+        else:
+            field_defs = [
+                FormDialog.FieldDef("APIKey", "API Key: ", ui.StringField, apikey_value),
+                FormDialog.FieldDef("deepsearch_nucleus_path", "Nucleus Path: ", ui.StringField, nucleus_path),
+                FormDialog.FieldDef("path_filter", "Path Filter: ", ui.StringField, path_filter)
+            ]
 
         dialog = FormDialog(
             title="Settings",
@@ -117,6 +126,13 @@ class GenAIWindow(ui.Window):
         dialog.show()
 
     def _build_ai_section(self):
+        
+        with ui.HStack(height=0):
+            ui.Spacer()
+            ui.Label("Use Azure OpenAI Services")
+            ui.CheckBox(model=self._use_az_openai)
+            ui.Spacer()
+        ui.Line()
         with ui.HStack(height=0):
             ui.Spacer()
             ui.Label("Use ChatGPT: ")
@@ -124,6 +140,7 @@ class GenAIWindow(ui.Window):
             ui.Label("Use Deepsearch: ", tooltip="ENTERPRISE USERS ONLY")
             ui.CheckBox(model=self._use_deepsearch)
             ui.Spacer()
+        
         with ui.HStack(height=0):
             ui.Spacer(width=ui.Percent(10))
             ui.Button("Generate", height=40,  
@@ -182,6 +199,7 @@ class GenAIWindow(ui.Window):
                             self.get_prompt(), 
                             self._use_chatgpt.as_bool, 
                             self._use_deepsearch.as_bool,
+                            self._use_az_openai.as_bool,
                             self.response_log,
                             self.progress
                             ))

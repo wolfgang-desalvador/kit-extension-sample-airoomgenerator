@@ -33,10 +33,10 @@ async def _query_first(query: str, url: str, paths):
     filtered_query = "ext:usd,usdz,usda "
 
     if len(paths) > 0:
-        filtered_query = filtered_query + " path: "
+        filtered_query = filtered_query + " path:"
 
         for path in paths:
-            filtered_query = filtered_query + "\"" + str(path) + "\","
+            filtered_query = filtered_query + str(path) + ","
         
         filtered_query = filtered_query[:-1]
     

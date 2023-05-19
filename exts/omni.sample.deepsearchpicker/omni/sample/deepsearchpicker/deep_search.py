@@ -34,7 +34,7 @@ class deep_search():
         filtered_query = "ext:usd,usdz,usda path:"
 
         for path in paths:
-            filtered_query = filtered_query + "\"" + str(path) + "\","
+            filtered_query = filtered_query + str(path) + ","
         
         filtered_query = filtered_query[:-1]
         

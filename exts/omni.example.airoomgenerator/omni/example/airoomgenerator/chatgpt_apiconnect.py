@@ -16,6 +16,7 @@
 import json
 import carb
 import asyncio
+import aiohttp
 from .prompts import system_input, user_input, assistant_input
 from .deep_search import query_items
 from .item_generator import place_greyboxes, place_deepsearch_results
@@ -28,30 +29,50 @@ omni.kit.pipapi.install(
 import openai
 
 
-async def chatGPT_call(prompt: str):
+async def chatGPT_call(prompt: str, use_openai: bool):
     # Load your API key from an environment variable or secret management service
     settings = carb.settings.get_settings()
     
-    openai.api_type = "azure"
-    openai.api_version = "2023-03-15-preview" 
-    openai.api_base = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/endpoint_value")
-    openai.api_key = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/APIKey")
-    my_prompt = prompt.replace("\n", " ")
-    
-    # Send a request API
-    try:
-        parameters = {
-            "engine": settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/deployment_model_name"),
-            "messages": [
+    messages = [
                     {"role": "system", "content": system_input},
                     {"role": "user", "content": user_input},
                     {"role": "assistant", "content": assistant_input},
-                    {"role": "user", "content": my_prompt}
+                    {"role": "user", "content": prompt.replace("\n", " ")}
                 ]
+    
+    api_key = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/APIKey")
+
+    if use_openai:
+        openai.api_type = "azure"
+        openai.api_version = "2023-03-15-preview" 
+        openai.api_base = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/endpoint_value")
+        openai.api_key = api_key
+        
+        # Send a request API
+        parameters = {
+            "engine": settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/deployment_model_name"),
+            "messages": messages
+        }
+    else:
+        # Send a request API
+        parameters = {
+            "engine": "gpt-3.5-turbo",
+            "messages": messages
         }
         
-        response = await openai.ChatCompletion.acreate(**parameters)
-        text = response["choices"][0]["message"]['content']
+
+    try:
+        if not use_openai:
+            chatgpt_url = "https://api.openai.com/v1/chat/completions"
+            headers = {"Authorization": "Bearer %s" % api_key}
+            # Create a completion using the chatGPT model
+            async with aiohttp.ClientSession() as session:
+                async with session.post(chatgpt_url, headers=headers, json=parameters) as r:
+                    response = await r.json()
+            text = response["choices"][0]["message"]['content']
+        else:
+            response = await openai.ChatCompletion.acreate(**parameters)
+            text = response["choices"][0]["message"]['content']
     except Exception as e:
         carb.log_error("An error as occurred")
         return None, str(e)
@@ -69,7 +90,7 @@ async def chatGPT_call(prompt: str):
         
         return object_list, text
 
-async def call_Generate(prim_info, prompt, use_chatgpt, use_deepsearch, response_label, progress_widget):
+async def call_Generate(prim_info, prompt, use_chatgpt, use_deepsearch, use_az_openai, response_label, progress_widget):
     run_loop = asyncio.get_event_loop()
     progress_widget.show_bar(True)
     task = run_loop.create_task(progress_widget.play_anim_forever())
@@ -82,7 +103,7 @@ async def call_Generate(prim_info, prompt, use_chatgpt, use_deepsearch, response
         root_prim_path= prim_info.area_name + "/items/"
     
     if use_chatgpt:          #when calling the API
-        objects, response = await chatGPT_call(concat_prompt)
+        objects, response = await chatGPT_call(concat_prompt, use_az_openai)
     else:                       #when testing and you want to skip the API call
         data = json.loads(assistant_input)
         objects = data['area_objects_list']
@@ -93,8 +114,8 @@ async def call_Generate(prim_info, prompt, use_chatgpt, use_deepsearch, response
     if use_deepsearch:
         settings = carb.settings.get_settings()
         nucleus_path = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/deepsearch_nucleus_path")
-        filter_path = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/filter_path")
-        filter_paths = filter_path.split(',')
+        path_filter = settings.get_as_string("/persistent/exts/omni.example.airoomgenerator/path_filter")
+        filter_paths = path_filter.split(',')
         
         queries = list()                        
         for item in objects:
